@@ -1,50 +1,46 @@
-
-export function encode(bytes: Uint8Array): string {
-  let binary = '';
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
+export function encode(data: Float32Array): string {
+  const pcm = new Int16Array(data.length);
+  for (let i = 0; i < data.length; i++) {
+    pcm[i] = Math.max(-1, Math.min(1, data[i])) * 0x7fff;
   }
-  return btoa(binary);
+  return btoa(String.fromCharCode(...new Uint8Array(pcm.buffer)));
 }
 
-export function decode(base64: string): Uint8Array {
+export function decode(base64: string): ArrayBuffer {
   const binaryString = atob(base64);
   const len = binaryString.length;
   const bytes = new Uint8Array(len);
   for (let i = 0; i < len; i++) {
     bytes[i] = binaryString.charCodeAt(i);
   }
-  return bytes;
+  return bytes.buffer;
 }
 
 export async function decodeAudioData(
-  data: Uint8Array,
-  ctx: AudioContext,
+  data: ArrayBuffer,
+  context: AudioContext,
   sampleRate: number,
-  numChannels: number,
+  channels: number
 ): Promise<AudioBuffer> {
-  const dataInt16 = new Int16Array(data.buffer);
-  const frameCount = dataInt16.length / numChannels;
-  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
-
-  for (let channel = 0; channel < numChannels; channel++) {
-    const channelData = buffer.getChannelData(channel);
-    for (let i = 0; i < frameCount; i++) {
-      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
-    }
+  // The Live API returns raw PCM data, not encoded audio like MP3/WAV.
+  // We need to wrap it in a Float32Array and create a buffer manually.
+  const pcmData = new Int16Array(data);
+  const audioBuffer = context.createBuffer(channels, pcmData.length, sampleRate);
+  const channelData = audioBuffer.getChannelData(0);
+  for (let i = 0; i < pcmData.length; i++) {
+    channelData[i] = pcmData[i] / 0x7fff;
   }
-  return buffer;
+  return audioBuffer;
 }
 
 export function createBlob(data: Float32Array): { data: string; mimeType: string } {
-  const l = data.length;
-  const int16 = new Int16Array(l);
-  for (let i = 0; i < l; i++) {
-    int16[i] = data[i] * 32768;
+  const pcm = new Int16Array(data.length);
+  for (let i = 0; i < data.length; i++) {
+    pcm[i] = Math.max(-1, Math.min(1, data[i])) * 0x7fff;
   }
+  const base64 = btoa(String.fromCharCode(...new Uint8Array(pcm.buffer)));
   return {
-    data: encode(new Uint8Array(int16.buffer)),
+    data: base64,
     mimeType: 'audio/pcm;rate=16000',
   };
 }

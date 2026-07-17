@@ -52,7 +52,7 @@ class depth_obj_det:
             conf = float(box.conf[0])
 
             if label not in self.obstacle_classes:
-                break
+                continue
             
             x1, y1, x2, y2 = map(int, box.xyxy[0])
 

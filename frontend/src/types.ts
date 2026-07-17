@@ -1,9 +1,3 @@
-
-export interface Location {
-  latitude: number;
-  longitude: number;
-}
-
 export enum NavigationStatus {
   IDLE = 'IDLE',
   INITIALIZING = 'INITIALIZING',
@@ -11,7 +5,8 @@ export enum NavigationStatus {
   ERROR = 'ERROR'
 }
 
-export interface NavigationStep {
-  instruction: string;
-  distance: string;
+export interface Location {
+  latitude: number;
+  longitude: number;
+  heading?: number;
 }

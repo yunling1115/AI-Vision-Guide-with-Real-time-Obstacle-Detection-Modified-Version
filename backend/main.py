@@ -19,18 +19,18 @@ app.add_middleware(
 )
 
 yolo = YOLO("yolov8n.pt")
-midas = torch.hub.load("intel-isl/MiDaS", "MiDaS_small")
+midas = torch.hub.load("intel-isl/MiDaS", "MiDaS_small", trust_repo=True)
 midas.eval()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 midas.to(device)
 
-transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
+transforms = torch.hub.load("intel-isl/MiDaS", "transforms", trust_repo=True)
 transform = transforms.small_transform
 
 depth_per = depth_obj_det(yolo, midas, transform)
 
-@app.websocket("/ws/vision")
+@app.websocket("/ws/vision") 
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     print("Client connected to vision WebSocket")
