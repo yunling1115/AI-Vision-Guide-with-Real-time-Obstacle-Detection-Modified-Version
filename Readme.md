@@ -1,7 +1,5 @@
 # AI Vision Guide with Real-time obstacle detection
 
-### Submission for Kitahack 2026 by team fluffly bears
-
 ## Key Features
 - Real-time object detection and depth estimation
 - Text-to-speech navigation instructions
