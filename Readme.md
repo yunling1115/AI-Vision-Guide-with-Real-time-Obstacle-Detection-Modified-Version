@@ -2,12 +2,6 @@
 
 ### Submission for Kitahack 2026 by team fluffly bears
 
-### Contributors
-- Andrew Chong
-- Leah Liew
-- Cheong Li Hua
-- Lee Yun Ling
-
 ## Key Features
 - Real-time object detection and depth estimation
 - Text-to-speech navigation instructions
