@@ -30,7 +30,11 @@ transform = transforms.small_transform
 
 depth_per = depth_obj_det(yolo, midas, transform)
 
-@app.websocket("/ws/vision") 
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
+@app.websocket("/ws/vision")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     print("Client connected to vision WebSocket")

@@ -1,0 +1,13 @@
+Using cache found in C:\Users\User/.cache\torch\hub\intel-isl_MiDaS_master
+Using cache found in C:\Users\User/.cache\torch\hub\rwightman_gen-efficientnet-pytorch_master
+Using cache found in C:\Users\User/.cache\torch\hub\intel-isl_MiDaS_master
+Using cache found in C:\Users\User/.cache\torch\hub\intel-isl_MiDaS_master
+Using cache found in C:\Users\User/.cache\torch\hub\rwightman_gen-efficientnet-pytorch_master
+Using cache found in C:\Users\User/.cache\torch\hub\intel-isl_MiDaS_master
+INFO:     Started server process [38520]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+Loading weights:  None
+Loading weights:  None
+INFO:     127.0.0.1:57715 - "GET /health HTTP/1.1" 200 OK
