@@ -688,7 +688,7 @@ const App: React.FC = () => {
             source.connect(scriptProcessor);
             scriptProcessor.connect(audioIn.destination);
 
-            const backendWs = new WebSocket('ws://localhost:8000/ws/vision');
+            const backendWs = new WebSocket(import.meta.env.VITE_BACKEND_WS_URL);
             backendWs.onopen = () => console.log("Connected to backend vision service");
             backendWs.onmessage = (e) => {
             const data = JSON.parse(e.data);
