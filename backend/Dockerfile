@@ -31,7 +31,10 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY . /workspace/
 
 # Step 8: Expose FastAPI port
-EXPOSE 8000
+EXPOSE 8080
+#EXPOSE 8080 merely informs anyone reading the Dockerfile (or certain tooling) that "this container intends to serve traffic on port 8080." 
+#It is purely documentation/intent—it does not actually open the port, nor does it force the container to listen on it.
 
 # Step 9: Run FastAPI server
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]
+#"If the PORT environment variable exists, use its value; if it doesn't, fall back to the default value of 8080."
