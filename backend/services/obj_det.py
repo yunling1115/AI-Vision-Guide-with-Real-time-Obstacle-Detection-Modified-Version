@@ -1,7 +1,10 @@
+import os
 import cv2
 import torch
 import numpy as np
 from ultralytics import YOLO
+
+DEBUG_SHOW_WINDOW = os.environ.get("DEBUG_SHOW_WINDOW", "false").lower() == "true"
 
 # Load a small YOLOv8 model (nano)
 model = YOLO('yolov8n.pt')
@@ -127,9 +130,10 @@ def process_frame(image_bytes):
     if has_hazard:
         cv2.putText(img, "HAZARD DETECTED", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
 
-    cv2.namedWindow("Detection Service Feed", cv2.WINDOW_NORMAL)
-    cv2.imshow("Detection Service Feed", img)
-    cv2.waitKey(1)
+    if DEBUG_SHOW_WINDOW:
+        cv2.namedWindow("Detection Service Feed", cv2.WINDOW_NORMAL)
+        cv2.imshow("Detection Service Feed", img)
+        cv2.waitKey(1)
         
     return {
         "status": "success", 

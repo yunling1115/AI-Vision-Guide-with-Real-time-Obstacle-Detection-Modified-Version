@@ -1,9 +1,11 @@
+import os
 import torch
 import cv2
 import numpy as np
 import base64
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEBUG_SHOW_WINDOW = os.environ.get("DEBUG_SHOW_WINDOW", "false").lower() == "true"
 
 class depth_obj_det:
     def __init__(self, yolo, midas, transform):
@@ -80,9 +82,10 @@ class depth_obj_det:
         if has_hazard:
             cv2.putText(img, "HAZARD DETECTED", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
 
-        cv2.namedWindow("Detection Service Feed", cv2.WINDOW_NORMAL)
-        cv2.imshow("Detection Service Feed", img)
-        cv2.waitKey(1)
+        if DEBUG_SHOW_WINDOW:
+            cv2.namedWindow("Detection Service Feed", cv2.WINDOW_NORMAL)
+            cv2.imshow("Detection Service Feed", img)
+            cv2.waitKey(1)
 
         # Encode annotated frame to base64
         _, buffer = cv2.imencode('.jpg', img)
