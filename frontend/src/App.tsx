@@ -688,6 +688,7 @@ const App: React.FC = () => {
             source.connect(scriptProcessor);
             scriptProcessor.connect(audioIn.destination);
 
+            const connectBackendWs = (retriesLeft = 3) => {
             const backendWs = new WebSocket(import.meta.env.VITE_BACKEND_WS_URL);
             backendWs.onopen = () => console.log("Connected to backend vision service");
             backendWs.onmessage = (e) => {
@@ -716,11 +717,20 @@ const App: React.FC = () => {
                     }
                 }
             } else {
-                console.error("Backend detection error:", data.message || data);  // 
+                console.error("Backend detection error:", data.message || data);  //
             }
         };
-          backendWs.onerror = (e) => console.error("Backend WebSocket error", e);   // 
-          backendWsRef.current = backendWs;
+          backendWs.onerror = (e) => console.error("Backend WebSocket error", e);   //
+          backendWs.onclose = (e) => {
+            if (isLiveRef.current && retriesLeft > 0) {
+              setTimeout(() => { backendWsRef.current = connectBackendWs(retriesLeft - 1); }, 2000);
+            } else if (retriesLeft === 0) {
+              console.error("Backend WebSocket failed after retries");
+            }
+          };
+          return backendWs;
+          };
+          backendWsRef.current = connectBackendWs();
 
             frameIntervalRef.current = window.setInterval(() => {
               if (videoRef.current && canvasRef.current && isLiveRef.current) {
