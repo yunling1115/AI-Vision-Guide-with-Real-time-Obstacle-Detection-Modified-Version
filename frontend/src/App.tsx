@@ -133,6 +133,8 @@ const App: React.FC = () => {
   const frameIntervalRef = useRef<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const backendWsRef = useRef<WebSocket | null>(null);
+  const backendReconnectTimeoutRef = useRef<number | null>(null);
+  const backendReconnectAttemptsRef = useRef<number>(0);
   const lastHazardAlertRef = useRef<number>(0);
 
   const isLiveRef = useRef(false);
@@ -607,6 +609,54 @@ const App: React.FC = () => {
     return { error: "GPS signal not found yet. Please wait." };
   };
 
+  const connectBackendWs = useCallback(() => {
+    if (!isLiveRef.current) return;
+
+    const ws = new WebSocket(import.meta.env.VITE_BACKEND_WS_URL);
+    ws.onopen = () => {
+      console.log("Connected to backend vision service");
+      backendReconnectAttemptsRef.current = 0;
+    };
+    ws.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    if (data.status === 'success') {
+        setBackendDetections(data.detections || []);
+        if (data.hazard) {
+            playSystemSound('alert');
+            setHazardDetected(true);
+            setTimeout(() => setHazardDetected(false), 500);
+
+            const now = Date.now();
+            if (
+                sessionRef.current &&
+                isLiveRef.current &&
+                data.detections?.length > 0 &&
+                now - lastHazardAlertRef.current > 3000
+            ) {
+                lastHazardAlertRef.current = now;
+                const labels = data.detections
+                    .map((d: any) => `${d.label} ${d.distance ? `(${d.distance})` : ''}`.trim())
+                    .join(', ');
+                sessionRef.current.sendRealtimeInput({
+                    text: `[System Update] Camera detected hazard ahead: ${labels}. Warn the user immediately with a short, urgent phrase naming what it is.`
+                });
+            }
+        }
+    } else {
+        console.error("Backend detection error:", data.message || data);
+    }
+    };
+    ws.onerror = (e) => console.error("Backend WebSocket error", e);
+    ws.onclose = () => {
+      if (isLiveRef.current && backendReconnectAttemptsRef.current < 10) {
+        backendReconnectAttemptsRef.current += 1;
+        console.log(`Backend WebSocket closed, retrying (${backendReconnectAttemptsRef.current}/10) in 2s...`);
+        backendReconnectTimeoutRef.current = window.setTimeout(() => connectBackendWs(), 2000);
+      }
+    };
+    backendWsRef.current = ws;
+  }, []);
+
   const stopSession = useCallback(() => {
     if (!isLiveRef.current) return;
     playSystemSound('activate');
@@ -620,6 +670,10 @@ const App: React.FC = () => {
     setIsProcessing(false);
     nextStartTimeRef.current = 0;
     if (sessionRef.current) sessionRef.current.close?.();
+    if (backendReconnectTimeoutRef.current) {
+        window.clearTimeout(backendReconnectTimeoutRef.current);
+        backendReconnectTimeoutRef.current = null;
+    }
     if (backendWsRef.current) {
         backendWsRef.current.close();
         backendWsRef.current = null;
@@ -688,49 +742,7 @@ const App: React.FC = () => {
             source.connect(scriptProcessor);
             scriptProcessor.connect(audioIn.destination);
 
-            const connectBackendWs = (retriesLeft = 3) => {
-            const backendWs = new WebSocket(import.meta.env.VITE_BACKEND_WS_URL);
-            backendWs.onopen = () => console.log("Connected to backend vision service");
-            backendWs.onmessage = (e) => {
-            const data = JSON.parse(e.data);
-            if (data.status === 'success') {
-                setBackendDetections(data.detections || []);
-                if (data.hazard) {
-                    playSystemSound('alert');
-                    setHazardDetected(true);
-                    setTimeout(() => setHazardDetected(false), 500);
-
-                    const now = Date.now();
-                    if (
-                        sessionRef.current &&
-                        isLiveRef.current &&
-                        data.detections?.length > 0 &&
-                        now - lastHazardAlertRef.current > 3000
-                    ) {
-                        lastHazardAlertRef.current = now;
-                        const labels = data.detections
-                            .map((d: any) => `${d.label} ${d.distance ? `(${d.distance})` : ''}`.trim())
-                            .join(', ');
-                        sessionRef.current.sendRealtimeInput({
-                            text: `[System Update] Camera detected hazard ahead: ${labels}. Warn the user immediately with a short, urgent phrase naming what it is.`
-                        });
-                    }
-                }
-            } else {
-                console.error("Backend detection error:", data.message || data);  //
-            }
-        };
-          backendWs.onerror = (e) => console.error("Backend WebSocket error", e);   //
-          backendWs.onclose = (e) => {
-            if (isLiveRef.current && retriesLeft > 0) {
-              setTimeout(() => { backendWsRef.current = connectBackendWs(retriesLeft - 1); }, 2000);
-            } else if (retriesLeft === 0) {
-              console.error("Backend WebSocket failed after retries");
-            }
-          };
-          return backendWs;
-          };
-          backendWsRef.current = connectBackendWs();
+            connectBackendWs();
 
             frameIntervalRef.current = window.setInterval(() => {
               if (videoRef.current && canvasRef.current && isLiveRef.current) {
@@ -912,7 +924,7 @@ GPS: ${location ? `${location.latitude},${location.longitude}` : 'Unknown — ca
       setStatus(NavigationStatus.ERROR);
       stopSession();
     }
-  }, [location, playSystemSound, stopSession, cancelNavigation, requestLocation, adjustZoom, upcomingSteps]);
+  }, [location, playSystemSound, stopSession, cancelNavigation, requestLocation, adjustZoom, upcomingSteps, connectBackendWs]);
 
   return (
     <div className="flex flex-col h-screen bg-black text-white overflow-hidden font-sans select-none">
